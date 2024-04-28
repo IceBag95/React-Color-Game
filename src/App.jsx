@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
 
 function App() {
@@ -7,13 +7,17 @@ function App() {
   const currentColor = HexColor()
   const [myColor, setMyColor] = useState(`#${currentColor}`)
   const [answers, setAnswers] = useState(Shuffle(createAnswers(currentColor)))
+  const [answerNames, setAnswerNames] = useState(fetchData());
   const [allAnswers, setallAnswers] = useState([]) //array of bool
   const [gameOver, setGameOver] = useState(false) // na ftiaxnei to telos gia na deixnei to score
   const [score, setScore] = useState(0)
 
 
 
+
+  
   function RandomHexValueInStr(){
+    
 
     const myNumberInt = Math.floor(Math.random()*15)
 
@@ -54,6 +58,8 @@ function App() {
       hexColorStr += RandomHexValueInStr()
       
     }
+
+    console.log(hexColorStr)
     return hexColorStr
   }
 
@@ -72,6 +78,7 @@ function App() {
   function createAnswers(color){
     let wrongAnswer1, wrongAnswer2;
     let strArray = color.split('')
+    
     while (true){
       const strArrayShuffled = Shuffle(strArray)
       if (strArrayShuffled.join('') !== color){
@@ -91,23 +98,61 @@ function App() {
     return [`#${color}`,`#${wrongAnswer1}`,`#${wrongAnswer2}`]
 
   }
+  
+  
+  useEffect(() => {
+    
+    const fetchAndSetAnswerNames = async () => {
+      const fetchedData = await fetchData();
+      setAnswerNames(f => [...fetchedData]);
+    };
+  
+    fetchAndSetAnswerNames();
+
+
+
+  },[answers])
+
+
+
+  async function fetchData(){
+
+    const A = []
+
+    for (let i = 0; i < answers.length; i++){
+      const item = answers[i]
+      let response = await fetch(`https://www.thecolorapi.com/id?hex=${item.slice(1)}`)
+      let data = await response.json()
+  
+      A.push(data.name.value)    
+
+    }
+
+    return A
+  } 
+
+      
+      
 
 
   function onButtonClick(event){
     const ans = event.target.value
-    const updatedAllAnswers = [...allAnswers, (ans===myColor)]
-    if ((ans===myColor)){
+    const idx = answerNames.indexOf(ans)
+    const updatedAllAnswers = [...allAnswers, (answers[idx]===myColor)]
+    if ((answers[idx]===myColor)){
       setScore(s => s + 1)
     }
     setallAnswers(updatedAllAnswers) // theloume na deixnoume to score
     if (updatedAllAnswers.length < 10){
       const new_color = HexColor()
+      //console.log(new_color)
       setMyColor(`#${new_color}`)
       setAnswers(Shuffle(createAnswers(new_color)));
     }
     else{
       setGameOver(g => !g )
     }
+    
       
   }
 
@@ -143,7 +188,7 @@ function App() {
             </div>
             <div id='choice-container'>
               {
-                answers.map((ans, index) => {
+                answerNames.map((ans, index) => {
                                               return <input type='button'
                                                             value={ans}
                                                             key={index}
